@@ -15,5 +15,5 @@ while True:
     x = random.randint(10, 790)
     y = random.randint(10, 590)
     r = random.randint(2, 10)
-    pygame.draw.circle(screen, (0, 0, 150) (x,y), r)
+    pygame.draw.circle(screen, (0, 0, 150), (x,y), r)
     pygame.display.flip()
