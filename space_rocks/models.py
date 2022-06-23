@@ -1,6 +1,7 @@
 # space_rocks/models.py
 from pygame.math import Vector2
 from pygame.transform import rotozoom
+import random
 from utils import load_sprite, wrap_position
 
 DIRECTION_UP = Vector2(0, -1)
@@ -47,3 +48,26 @@ class Spaceship(GameObject):
 
         blit_position = self.position - rotated_surface_size * 0.5
         surface.blit(rotated_surface, blit_position)
+
+class Rock(GameObject):
+    MIN_START_GAP = 250
+    MIN_SPEED = 1
+    MAX_SPEED = 3
+
+    def __init__(self, surface, ship_position):
+        # Generate a random position until one is far enough away from ship
+        while True:
+            position = Vector2(
+                random.randrange(surface.get_width()),
+                random.randrange(surface.get_height()),
+            )
+
+            if position.distance_to(ship_position) > self.MIN_START_GAP:
+                break
+
+        # RANDOM VELOCITY
+        speed = random.randint(self.MIN_SPEED, self.MAX_SPEED)
+        angle = random.randint(0, 360)
+        velocity = Vector2(speed, 0).rotate(angle)
+
+        super().__init__(position, load_sprite("asteroid"), velocity)

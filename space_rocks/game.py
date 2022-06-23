@@ -1,6 +1,6 @@
 # space_rocks/game.py
 import pygame
-from models import Spaceship
+from models import Spaceship, Rock
 from utils import load_sprite
 
 class SpaceRocks():
@@ -14,6 +14,8 @@ class SpaceRocks():
         self.background = load_sprite("space", False)
 
         self.ship = Spaceship((400, 300))
+
+        self.rocks = [Rock(self.screen, self.ship.position) for _ in range(6)]
 
     def main_loop(self):
         while True:
@@ -36,12 +38,19 @@ class SpaceRocks():
         elif is_key_pressed[pygame.K_UP]:
             self.ship.accelerate()
 
+    @property
+    def game_objects(self):
+        return [*self.rocks, self.ship]
+
     def _game_logic(self):
-        self.ship.move(self.screen)
+        for obj in self.game_objects:
+            obj.move(self.screen)
 
     def _draw(self):
-        """draw function. Rock and ship needs to be after background rock and ship is not overwritten"""
         self.screen.blit(self.background, (0, 0))
-        self.ship.draw(self.screen)
+
+        for obj in self.game_objects:
+            obj.draw(self.screen)
+
         pygame.display.flip()
         self.clock.tick(30)
