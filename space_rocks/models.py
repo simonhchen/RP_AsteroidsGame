@@ -7,11 +7,12 @@ from utils import load_sprite, wrap_position
 DIRECTION_UP = Vector2(0, -1)
 
 class GameObject:
-    def __init__(self, position, sprite, velocity):
+    def __init__(self, position, sprite, velocity, wraps=True):
         self.position = Vector2(position)
         self.sprite = sprite
         self.radius = sprite.get_width() / 2
         self.velocity = Vector2(velocity)
+        self.wraps = wraps
 
     def draw(self, surface):
         position = self.position - Vector2(self.radius)
@@ -21,6 +22,11 @@ class GameObject:
         move_to = self.position + self.velocity
         self.position = wrap_position(move_to, surface)
 
+        if self.wraps:
+            self.position = wrap_position(move_to, surface)
+        else:
+            self.position = move_to
+
     def collides_width(self, other):
         distance = self.position.distance_to(other.position)
         return distance < self.radius + other.radius
@@ -28,9 +34,11 @@ class GameObject:
 class Spaceship(GameObject):
     ROTATION_SPEED = 3
     ACCELERATION = 0.25
+    BULLET_SPEED = 3
 
-    def __init__(self, position):
+    def __init__(self, position, bullet_container):
         self.direction = Vector2(DIRECTION_UP)
+        self.bullet_container = bullet_container
         super().__init__(position, load_sprite("spaceship"), Vector2(0))
 
     def rotate(self, clockwise=True):
@@ -40,6 +48,12 @@ class Spaceship(GameObject):
 
     def accelerate(self):
         self.velocity += self.direction * self.ACCELERATION
+
+    def shoot(self):
+        velocity = self.direction * self.BULLET_SPEED + self.velocity
+        bullet = Bullet(self.position, velocity)
+        self.bullet_container.append(bullet)
+        print(f"# bullets: {len(self.bullet_container)}")
 
     def draw(self, surface):
         angle = self.direction.angle_to(DIRECTION_UP)
@@ -71,3 +85,7 @@ class Rock(GameObject):
         velocity = Vector2(speed, 0).rotate(angle)
 
         super().__init__(position, load_sprite("asteroid"), velocity)
+
+class Bullet(GameObject):
+    def __init__(self, position, velocity):
+        super().__init__(position, load_sprite("bullet"), velocity, False)
