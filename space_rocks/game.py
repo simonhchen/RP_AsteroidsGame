@@ -36,7 +36,11 @@ class SpaceRocks:
         is_key_pressed = pygame.key.get_pressed()
         if is_key_pressed[pygame.K_ESCAPE] or is_key_pressed[pygame.K_q]:
             quit()
-        elif is_key_pressed[pygame.K_RIGHT]:
+
+        if self.ship is None:
+            return
+
+        if is_key_pressed[pygame.K_RIGHT]:
             self.ship.rotate(clockwise=True)
         elif is_key_pressed[pygame.K_LEFT]:
             self.ship.rotate(clockwise=False)
@@ -55,6 +59,19 @@ class SpaceRocks:
         for bullet in self.bullets[:]:
             if not rect.collidepoint(bullet.position):
                 self.bullets.remove(bullet)
+
+        for bullet in self.bullets[:]:
+            for rock in self.rocks[:]:
+                if rock.collides_width(bullet):
+                    self.rocks.remove(rock)
+                    self.bullets.remove(bullet)
+                    break
+
+        if self.ship:
+            for rock in self.rocks[:]:
+                if rock.collides_width(self.ship):
+                    self.ship = None
+                    break
 
     def _draw(self):
         self.screen.blit(self.background, (0, 0))
