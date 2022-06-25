@@ -1,31 +1,38 @@
 # space_rocks/game.py
 import pygame
-from models import Spaceship, Rock
-from utils import load_sprite
+from models import Rock, Spaceship
+from utils import load_sprite, print_text
+
+bullets = []
+rocks = []
 
 class SpaceRocks:
-    def __init__ (self):
+    def __init__(self):
         # Initialize pygame and set the title
         pygame.init()
-        pygame.display.set_caption("Space Rock")
+        pygame.display.set_caption("Space Rocks")
         self.clock = pygame.time.Clock()
+        self.font = pygame.font.Font(None, 64)
+        self.message = ""
 
-        self.screen = pygame.display.set_mode((800,600))
+        self.screen = pygame.display.set_mode((800, 600))
         self.background = load_sprite("space", False)
 
-        self.bullets = []
+        self.ship = Spaceship((400, 300))
 
-        self.ship = Spaceship((400, 300), self.bullets)
-
-        self.rocks = [Rock(self.screen, self.ship.position) for _ in range(6)]
+        global rocks
+        rocks = [
+            Rock.create_random(self.screen, self.ship.position)
+            for _ in range(6)
+        ]
 
     def main_loop(self):
         while True:
-            self._handleinput()
+            self._handle_input()
             self._game_logic()
             self._draw()
 
-    def _handleinput(self):
+    def _handle_input(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 quit()
@@ -49,35 +56,51 @@ class SpaceRocks:
 
     @property
     def game_objects(self):
-        return [*self.rocks, *self.bullets, self.ship]
+        global bullets, rocks
+        stuff = [*bullets, *rocks]
+
+        if self.ship:
+            stuff.append(self.ship)
+
+        return stuff
 
     def _game_logic(self):
+        global bullets, rocks
+
         for obj in self.game_objects:
             obj.move(self.screen)
 
         rect = self.screen.get_rect()
-        for bullet in self.bullets[:]:
+        for bullet in bullets[:]:
             if not rect.collidepoint(bullet.position):
-                self.bullets.remove(bullet)
+                bullets.remove(bullet)
 
-        for bullet in self.bullets[:]:
-            for rock in self.rocks[:]:
-                if rock.collides_width(bullet):
-                    self.rocks.remove(rock)
-                    self.bullets.remove(bullet)
+        for bullet in bullets[:]:
+            for rock in rocks[:]:
+                if rock.collides_with(bullet):
+                    rocks.remove(rock)
+                    rock.split()
+                    bullets.remove(bullet)
                     break
 
         if self.ship:
-            for rock in self.rocks[:]:
-                if rock.collides_width(self.ship):
+            for rock in rocks[:]:
+                if rock.collides_with(self.ship):
                     self.ship = None
+                    self.message = "You lost!"
                     break
+
+        if not rocks and self.ship:
+            self.message = "You won!"
 
     def _draw(self):
         self.screen.blit(self.background, (0, 0))
 
         for obj in self.game_objects:
             obj.draw(self.screen)
+
+        if self.message:
+            print_text(self.screen, self.message, self.font)
 
         pygame.display.flip()
         self.clock.tick(30)

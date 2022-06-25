@@ -2,7 +2,7 @@
 from pygame.math import Vector2
 from pygame.transform import rotozoom
 import random
-from utils import load_sprite, wrap_position
+from utils import load_sprite, load_sound, wrap_position
 
 DIRECTION_UP = Vector2(0, -1)
 
@@ -20,14 +20,13 @@ class GameObject:
 
     def move(self, surface):
         move_to = self.position + self.velocity
-        self.position = wrap_position(move_to, surface)
 
         if self.wraps:
             self.position = wrap_position(move_to, surface)
         else:
             self.position = move_to
 
-    def collides_width(self, other):
+    def collides_with(self, other):
         distance = self.position.distance_to(other.position)
         return distance < self.radius + other.radius
 
@@ -36,13 +35,13 @@ class Spaceship(GameObject):
     ACCELERATION = 0.25
     BULLET_SPEED = 3
 
-    def __init__(self, position, bullet_container):
+    def __init__(self, position):
         self.direction = Vector2(DIRECTION_UP)
-        self.bullet_container = bullet_container
+        self.pew_pew = load_sound("laser")
         super().__init__(position, load_sprite("spaceship"), Vector2(0))
 
     def rotate(self, clockwise=True):
-        sign = 1 if clockwise else -1 # figured out which to rotate
+        sign = 1 if clockwise else -1
         angle = self.ROTATION_SPEED * sign
         self.direction.rotate_ip(angle)
 
@@ -52,8 +51,12 @@ class Spaceship(GameObject):
     def shoot(self):
         velocity = self.direction * self.BULLET_SPEED + self.velocity
         bullet = Bullet(self.position, velocity)
-        self.bullet_container.append(bullet)
-        print(f"# bullets: {len(self.bullet_container)}")
+
+        from game import bullets
+
+        bullets.append(bullet)
+
+        self.pew_pew.play()
 
     def draw(self, surface):
         angle = self.direction.angle_to(DIRECTION_UP)
@@ -68,7 +71,8 @@ class Rock(GameObject):
     MIN_SPEED = 1
     MAX_SPEED = 3
 
-    def __init__(self, surface, ship_position):
+    @classmethod
+    def create_random(cls, surface, ship_position):
         # Generate a random position until one is far enough away from ship
         while True:
             position = Vector2(
@@ -76,15 +80,35 @@ class Rock(GameObject):
                 random.randrange(surface.get_height()),
             )
 
-            if position.distance_to(ship_position) > self.MIN_START_GAP:
+            if position.distance_to(ship_position) > cls.MIN_START_GAP:
                 break
 
-        # RANDOM VELOCITY
+        return Rock(position)
+
+    def __init__(self, position, size=3):
+        self.size = size
+        if size == 3:
+            scale = 1.0
+        elif size == 2:
+            scale = 0.5
+        else:
+            scale = 0.25
+
+        sprite = rotozoom(load_sprite("asteroid"), 0, scale)
+
+        # Random velocity
         speed = random.randint(self.MIN_SPEED, self.MAX_SPEED)
         angle = random.randint(0, 360)
         velocity = Vector2(speed, 0).rotate(angle)
 
-        super().__init__(position, load_sprite("asteroid"), velocity)
+        super().__init__(position, sprite, velocity)
+
+    def split(self):
+        if self.size > 1:
+            from game import rocks
+
+            rocks.append(Rock(self.position, self.size - 1))
+            rocks.append(Rock(self.position, self.size - 1))
 
 class Bullet(GameObject):
     def __init__(self, position, velocity):
